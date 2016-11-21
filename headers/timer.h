@@ -10,10 +10,8 @@
 #ifndef _TIMER_H
 #define _TIMER_H
 
-#ifdef FRDM
 #include "MKL25Z4.h"
 #include "core_cm0plus.h"
-#endif
 
 /* Function prototype Section
  * Add protoypes for all functions called by this module, with the exception

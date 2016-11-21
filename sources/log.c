@@ -18,14 +18,7 @@
 void LOG_0(uint8_t * data, uint8_t len)
 {
 #ifdef VERBOSE
-#ifdef FRDM
 	uart_tx_data(data,len);
-#else
-    uint8_t i;
-    for (i = 0; i<len; i++) {
-    	printf("%c",*(data+i));
-    }
-#endif
 #endif
 }
 

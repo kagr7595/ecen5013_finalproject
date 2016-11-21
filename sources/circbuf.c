@@ -6,8 +6,8 @@
 *   Author: Dylan Way
 *       
 ****************************************************************************/
-#include "log.h"
 #include "circbuf.h"
+#include "log.h"
 
 // Creates a buffer by allocating it on the heap.
 CircBuf_t * buffer_init(uint32_t buf_size) {

@@ -10,11 +10,8 @@
 #ifndef _UART_H
 #define _UART_H
 
-#ifdef FRDM
 #include "MKL25Z4.h"
 #include "core_cm0plus.h"
-//#include "startup_MKL25Z4.S"
-#endif
 
 #include "circbuf.h"
 
@@ -36,7 +33,7 @@ void uart_rx_data(uint8_t *read, uint8_t length);
 void uart_tx_data(uint8_t *send, uint8_t length);
 
 // Sets up UART0 registers
-void init_uart(void);
+void uart_init(void);
 
 // IRQ handler routine for when a character is received
 //void UART0_IRQHandler(void); //__attribute__((interrupt("IRQ")));

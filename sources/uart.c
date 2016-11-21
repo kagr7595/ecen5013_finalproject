@@ -60,7 +60,7 @@ extern void UART0_IRQHandler() {
 	}
 }
 
-void init_uart() {
+void uart_init() {
 	__disable_irq();
 	// Enable clock at portA
 	SIM_SCGC5 |= SIM_SCGC5_PORTA_MASK;
