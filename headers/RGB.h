@@ -16,6 +16,10 @@
 
 /* Defines and Structures section
  ***************************************************************************/
+// uses bit patterns to represent each of the three colors
+// bit1 = BLUE
+// bit2 = GREEN
+// bit3 = RED
 enum LED {OFF, BLUE, GREEN, BLUE_GREEN, RED, RED_BLUE, RED_GREEN, RGB};
 
 /* Function prototype Section

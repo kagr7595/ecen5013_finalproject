@@ -15,6 +15,7 @@
 
 // Initializes the PWM and ports for controlling the RGB LED
 void RGB_init() {
+	__disable_irq();
 	// Clocking enabled to PortB and PortD
 	SIM_SCGC5 |= SIM_SCGC5_PORTB_MASK | SIM_SCGC5_PORTD_MASK;
 
@@ -48,6 +49,8 @@ void RGB_init() {
 	TPM0_C1V = 0xFFFF; //blue
 	TPM2_C0V = 0xFFFF; //red
 	TPM2_C1V = 0xFFFF; //green
+
+	__enable_irq();
 }
 
 // Change the LED brightness by changing the PWM of the input

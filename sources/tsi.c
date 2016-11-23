@@ -12,13 +12,48 @@
 
 #include "tsi.h"
 
+// calibration flag
+volatile uint8_t cal_flag = 1;
+
 // stores the values read from the register
 volatile uint16_t raw_tsi_val[2];
 // stores the base values of the sensor to find the offset
 volatile uint16_t base_tsi_val[2];
 
+// global variables meant to communicate with the game state machine
+volatile uint8_t COLOR_EVENT = 0;
+volatile uint8_t RELEASE_EVENT = 0;
+volatile uint8_t touch_color = 0;
+
+// This function translates between the electrode values and the RGB LED colors
+// The first input corresponds to the first electrode reading (connected to TSI9)
+// and the second input corresponds to the second electrode reading (connected to TSI10)
+uint8_t bin_to_color(uint8_t loc_bin){
+	if(loc_bin == LEFT){
+		set_color(RGB);
+		return RGB;
+	}
+	else if(loc_bin == CENTER_LEFT){
+		set_color(RED);
+		return RED;
+	}
+	else if(loc_bin == CENTER_RIGHT){
+		set_color(BLUE);
+		return BLUE;
+	}
+	else if(loc_bin == RIGHT){
+		set_color(GREEN);
+		return GREEN;
+	}
+	else{
+		set_color(OFF);
+		return OFF;
+	}
+}
+
 // Initializes the hardware for the TSI and reads in the base values for each of the two sensors
-uint8_t tsi_init(){
+// RGB_init() must be called prior
+void tsi_init(){
 	__disable_irq();
 
     // Enable clock gating for TSI
@@ -41,6 +76,7 @@ uint8_t tsi_init(){
     PORTB_PCR16 = PORT_PCR_MUX(0);
     PORTB_PCR17 = PORT_PCR_MUX(0);
 
+    __enable_irq();
     // Find the base values of the two capacitive sensors
     // Channel 0
     TSI0_DATA = tsi_start_scan(9);
@@ -53,6 +89,9 @@ uint8_t tsi_init(){
     while(!tsi_scan_done){;}
     TSI0_GENCS |= TSI_GENCS_EOSF_MASK;
     *(base_tsi_val+1) = TSI_COUNT;
+    __disable_irq();
+
+    cal_flag = 0;
 
     // Clear pending interrupt
     NVIC_ClearPendingIRQ(TSI0_IRQn);
@@ -92,16 +131,16 @@ uint8_t tsi_position(uint16_t elec0, uint16_t elec1) {
 		final_pos = (pos0+pos1)/2;
 		// convert position to a bin
 		if(final_pos < 25){
-			bin_location = LEFT;
+			bin_location = RIGHT;
 		}
 		else if(final_pos < 50){
-			bin_location = CENTER_LEFT;
-		}
-		else if(final_pos < 75){
 			bin_location = CENTER_RIGHT;
 		}
+		else if(final_pos < 75){
+			bin_location = CENTER_LEFT;
+		}
 		else{
-			bin_location = RIGHT;
+			bin_location = LEFT;
 		}
 	}
 	return bin_location;
@@ -114,10 +153,26 @@ extern void TSI0_IRQHandler() {
 	TSI0_GENCS |= TSI_GENCS_EOSF_MASK;
 	*(raw_tsi_val+ch-9) = TSI_COUNT;
 
-	// Start scan on opposite channel
-	if(ch == 9){ch = 10;}
-	else{ch = 9;}
-	TSI0_DATA = tsi_start_scan(ch);
+	// only want to run LED when not running for calibration
+	if(cal_flag == 0){
+		// Set LED color and check if flag must be set for the COLOR_EVENT
+		uint16_t elec0 = tsi_check(0);
+		uint16_t elec1 = tsi_check(1);
+		uint8_t loc_bin = tsi_position(elec0, elec1);
+		touch_color = bin_to_color(loc_bin);
+
+		if (loc_bin != NONE){
+			COLOR_EVENT = 1;
+		}
+		else{
+			RELEASE_EVENT = 1;
+		}
+
+		// Start scan on opposite channel
+		if(ch == 9){ch = 10;}
+		else{ch = 9;}
+		TSI0_DATA = tsi_start_scan(ch);
+	}
 }
 
 #endif

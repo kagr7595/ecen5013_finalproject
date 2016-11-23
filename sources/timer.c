@@ -16,7 +16,7 @@
 
 #define MICRO_CONV 1000000
 #define CLOCK 48000000
-#define PRESCALAR 0x0004
+#define PRESCALAR 6
 /*000 Divide by 1
   001 Divide by 2
   010 Divide by 4
@@ -28,14 +28,21 @@
 
 volatile CircBuf_t * rx_buf;
 uint64_t overflow_cnt;
+uint8_t overflow_target;
+
+// Global variable to communicate a timer event to the game state machine
+volatile uint8_t TIMER_EVENT = 0;
 
 // Initialize the timer
-void init_timer() {
-#ifdef FRDM
+void timer_init() {
+
+    // Disable Interrupt for TPM1
+    NVIC_DisableIRQ(TPM1_IRQn);
+
 	// Initialize overflow count
 	overflow_cnt = 0;
 
-	// Clocking enabled to TPM0 and TPM2
+	// Clocking enabled to TPM1
 	SIM_SCGC6 |= SIM_SCGC6_TPM1_MASK;
 
 	// Source is from MCGFLLCLK clock or MCGPLLCLK/2 clock
@@ -51,38 +58,36 @@ void init_timer() {
     // Clear pending interrupt
     NVIC_ClearPendingIRQ(TPM1_IRQn);
 
-    // Enable Interrupt for UART0, interrupt 12 in vector table
+    // Enable Interrupt for TPM1
     NVIC_EnableIRQ(TPM1_IRQn);
 
     __enable_irq();
-#endif
 }
 
 // starts the timer over
-void timer_start() {
-#ifdef FRDM
+// take input {speed_divider) this changes the number of timer overflows that must occur before resetting the timer
+// SLOW -> overflow = 15 (3 sec), MEDIUM -> overlow = 10 (2 sec), FAST -> overflow = 5 (1 sec)
+void timer_start(uint8_t speed_divider) {
 	// Holds the LPTPM counter value, writing to COUNT clears the counter
+	overflow_target = speed_divider;
 	overflow_cnt = 0;
 	TPM1_CNT = 0;
-#endif
+	NVIC_EnableIRQ(TPM1_IRQn);
 }
 
 // Converts the count pulled from the timer to a time value in terms of microseconds
 uint64_t count_to_time(uint64_t count) {
-	return (count*MICRO_CONV)/(CLOCK/PRESCALAR);
+	return (count*MICRO_CONV)/(CLOCK/64);
 }
 
-// returns the ending time
-uint64_t timer_end() {
-#ifdef FRDM
-	// Holds the LPTPM counter value, writing to COUNT clears the counter
-	return ((0x0000FFFF * overflow_cnt) + TPM1_CNT);
-#else
-	return 0;
-#endif
+// Disables the timer interrupt
+void timer_end() {
+	// Disables the interrupt
+    // Enable Interrupt for TPM1
+    NVIC_DisableIRQ(TPM1_IRQn);
+	return;
 }
 
-#ifdef FRDM
 extern void TPM1_IRQHandler() {
     // Checks the Timer Overflow Flag, 1 indicates counter has overflowed
 	if (TPM1_STATUS & TPM_STATUS_TOF_MASK) {
@@ -90,7 +95,9 @@ extern void TPM1_IRQHandler() {
 		// clears the TOF flag
 		TPM1_SC |= TPM_SC_TOF_MASK;
 	}
+	if (overflow_cnt == overflow_target){
+		overflow_cnt = 0;
+		TIMER_EVENT = 1;
+	}
 }
-#endif
-
 #endif
