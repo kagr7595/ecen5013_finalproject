@@ -47,7 +47,7 @@ void lcd_init(){
     //Increment automatically, no display shift
     lcd_command_write(ENTRY_MODE_SET,LOW,HIGH,NA);
     //Turn display on, cursor on, no blinking
-    lcd_command_write(DISPLAY_CTL,LOW,HIGH,HIGH);
+    lcd_command_write(DISPLAY_CTL,BLINK,HIGH,HIGH);
     //Clear display, set cursor position to zero
     lcd_command_write(CLEAR_DISPLAY,NA,NA,NA);
 
@@ -204,7 +204,7 @@ void lcd_command_write(uint8_t command, uint8_t param0, uint8_t param1, uint8_t 
 	    FGPIOC_PDDR &= ~(LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
 
 		GPIOC_PTOR &= ~(LCD_RS);
-		GPIOC_PTOR = (LCD_RW | LCD_D7);
+		GPIOC_PTOR = LCD_RW;
 
 	}
 	else if(command == WRITE)
@@ -230,16 +230,6 @@ void lcd_command_write(uint8_t command, uint8_t param0, uint8_t param1, uint8_t 
 	    FGPIOC_PDDR &= ~(LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
 
 		GPIOC_PTOR = (LCD_RS | LCD_RW);
-		ldat.ldata = param0;
-		lcd_write_reg(D7,ldat.ld7);
-		lcd_write_reg(D6,ldat.ld6);
-		lcd_write_reg(D5,ldat.ld5);
-		lcd_write_reg(D4,ldat.ld4);
-		lcd_write_reg(D3,ldat.ld3);
-		lcd_write_reg(D2,ldat.ld2);
-		lcd_write_reg(D1,ldat.ld1);
-		lcd_write_reg(D0,ldat.ld0);
-
 	}
 	else
 	{
@@ -285,6 +275,9 @@ void lcd_data_write(uint8_t * character_string, uint8_t length)
 	{
 		lcd_command_write(WRITE,lcd_character_map(*(character_string+i)),NA,NA);
 	}
+
+	//move cursor back to the beginning
+	lcd_command_write(CURSOR_HOME,NA,NA,NA);
 }
 
 void lcd_write_reg(uint8_t bit_name, uint8_t high)
@@ -445,6 +438,8 @@ uint8_t lcd_character_map(uint8_t character)
 	else if (character == '=') { return 0x3D; }
 	else if (character == '(') { return 0x28; }
 	else if (character == ')') { return 0x29; }
+	else if (character == '.') { return 0x2E; }
+	else if (character == ' ') { return 0x00; }
 	else { return 0xEF; } //ERROR OUTPUT
 }
 
