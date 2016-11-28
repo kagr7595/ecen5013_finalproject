@@ -68,6 +68,8 @@ uint8_t game_difficulty(){
 	RELEASE_EVENT = 0;
 	COLOR_EVENT = 0;
 	uint8_t str_dif[48] = "Select a difficulty!\nLeft = EASY   Right = HARD\n";
+	uint8_t str_dif_lcd[32] = "Touch Left=EASY Touch Right=HARD";
+	lcd_data_write(str_dif_lcd,32);
 	LOG_0(str_dif, 48);
 	while(!COLOR_EVENT){
 		NVIC_DisableIRQ(TSI0_IRQn);
@@ -76,11 +78,13 @@ uint8_t game_difficulty(){
 	}
 	if((touch_color == RGB) || (touch_color == RED)){
 		uint8_t str_dif1[15] = "Selected EASY!\n";
+		lcd_data_write(str_dif1,14);
 		LOG_0(str_dif1, 15);
 		difficulty = EASY;
 	}
 	else if((touch_color == GREEN) || (touch_color == BLUE)){
 		uint8_t str_dif2[15] = "Selected HARD!\n";
+		lcd_data_write(str_dif2,14);
 		LOG_0(str_dif2, 15);
 		difficulty = HARD;
 	}
@@ -88,6 +92,8 @@ uint8_t game_difficulty(){
 		error = DIF_GAME_ERROR;
 	}
 	uint8_t str[37] = "To start the game, touch the slider!\n";
+	uint8_t str_lcd[32] = " To start game,   touch slider! ";
+	lcd_data_write(str_lcd,32);
 	LOG_0(str, 37);
 	state = WAIT_RELEASE;
 	return_state = START;
@@ -147,21 +153,25 @@ uint8_t game_request_color(){
 		req_color = RED;
 		uint8_t str[4] = "RED\n";
 		LOG_0(str, 4);
+		lcd_data_write(str,3);
 	}
 	else if(color_num == 1){
 		req_color = GREEN;
 		uint8_t str[6] = "GREEN\n";
 		LOG_0(str, 6);
+		lcd_data_write(str,3);
 	}
 	else if(color_num == 2){
 		req_color = BLUE;
 		uint8_t str[5] = "BLUE\n";
 		LOG_0(str, 5);
+		lcd_data_write(str,3);
 	}
 	else if(color_num == 3){
 		req_color = RGB;
 		uint8_t str[4] = "RGB\n";
 		LOG_0(str, 4);
+		lcd_data_write(str,3);
 	}
 	else{
 		error = COLOR_REQUEST_GAME_ERROR;

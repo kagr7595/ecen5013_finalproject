@@ -7,7 +7,7 @@
 *               Dylan Way
 *       
 ****************************************************************************/
-#ifndef _LED_CONTROL_H
+#ifndef _LED_CONTROL_H_I
 #define _LED_CONTROL_H
 
 #include "RGB.h"

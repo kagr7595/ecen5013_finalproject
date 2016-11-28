@@ -63,9 +63,11 @@ uint8_t final_project() {
 	LOG_0(str_correct1, 3);
 
 #elif LCD_TEST
+	lcd_init();
 
 #else
 	// Initialize all devices: Timer, RGB LED, UART(for now), LCD, Touch Slider, Peterson lock
+	lcd_init();
 	tsi_init();
 	RGB_init();
 	timer_init();

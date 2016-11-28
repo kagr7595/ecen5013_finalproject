@@ -14,6 +14,7 @@
  ***************************************************************************/
 #include <stdint.h>
 
+#include "lcd.h"
 #include "tsi.h"
 #include "tsi_tests.h"
 #include "uart.h"
