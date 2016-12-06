@@ -19,9 +19,9 @@ void lcd_init(){
     SIM_SCGC5 |= SIM_SCGC5_PORTC_MASK;
 
     // Sets mux to Alternative 1 to use as GPIO
-    PORTC_PCR0 = PORT_PCR_MUX(1) | PORT_PCR_DSE_MASK; //Read/Write (Read is Active High)
-    PORTC_PCR10 = PORT_PCR_MUX(1) | PORT_PCR_DSE_MASK; //RS: Command Register (Active Low)/Write Register (Active High)
-    PORTC_PCR11 = PORT_PCR_MUX(1) | PORT_PCR_DSE_MASK; //Enable
+    PORTC_PCR7 = PORT_PCR_MUX(1) | PORT_PCR_DSE_MASK; //Read/Write (Read is Active High)
+    PORTC_PCR11 = PORT_PCR_MUX(1) | PORT_PCR_DSE_MASK; //RS: Command Register (Active Low)/Write Register (Active High)
+    PORTC_PCR9 = PORT_PCR_MUX(1) | PORT_PCR_DSE_MASK; //Enable
     PORTC_PCR3 = PORT_PCR_MUX(1) | PORT_PCR_DSE_MASK; //D0 (LSB)
     PORTC_PCR4 = PORT_PCR_MUX(1) | PORT_PCR_DSE_MASK; //D1
     PORTC_PCR5 = PORT_PCR_MUX(1) | PORT_PCR_DSE_MASK; //D2
@@ -32,12 +32,12 @@ void lcd_init(){
     PORTC_PCR17 = PORT_PCR_MUX(1) | PORT_PCR_DSE_MASK; //D7 (HSB)
 
     //Setting the pins as outputs (PDDR = Port Data Direction Register)
-    FGPIOC_PDDR = LCD_RW;
-    FGPIOC_PDDR = LCD_RS;
-    FGPIOC_PDDR = LCD_EN;
-    //The below data pins need to be able to be changed to input when doing a read or to know if the lcd is busy (LCD_D7)
-    //Currently will set as output
-    FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
+    FGPIOC_PDDR = (LCD_EN | LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
+    uint8_t j;
+	//for(j = 0; j<255; j++) {};
+	//Clear all values and set enable to off (Active LOW)
+	GPIOC_PDOR &= ~(LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
+	GPIOC_PDOR |= LCD_EN;
 
     //Get into 8bit mode
     lcd_8bit_mode();
@@ -46,10 +46,11 @@ void lcd_init(){
     lcd_command_write(FUNCTION_SET,LOW,HIGH,HIGH);
     //Increment automatically, no display shift
     lcd_command_write(ENTRY_MODE_SET,LOW,HIGH,NA);
-    //Turn display on, cursor on, no blinking
-    lcd_command_write(DISPLAY_CTL,BLINK,HIGH,HIGH);
-    //Clear display, set cursor position to zero
-    lcd_command_write(CLEAR_DISPLAY,NA,NA,NA);
+    //Turn display on, cursor off, no blinking
+    lcd_command_write(DISPLAY_CTL,LOW,LOW,HIGH);
+
+    lcd_display_en(HIGH);
+    lcd_delay(MEDIUM);
 
 }
 
@@ -61,28 +62,33 @@ void lcd_command_write(uint8_t command, uint8_t param0, uint8_t param1, uint8_t 
 	if(command == CLEAR_DISPLAY)
 	{
 	    //data set as output
-	    FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
+		FGPIOC_PDDR = (LCD_EN | LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);//FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
 
 		//Clear display - Clears display and returns cursor to the home position (address 0)
-		GPIOC_PTOR &= ~(LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1);
-		GPIOC_PTOR = LCD_D2;
+		GPIOC_PDOR &= ~(LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1);
+		GPIOC_PDOR |= LCD_D0;
+
+
+		lcd_toggle_en(1);
 	}
 	else if(command == CURSOR_HOME)
 	{
 	    //data set as output
-	    FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
+		FGPIOC_PDDR = (LCD_EN | LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);//FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
 
 		//Cursor home - Returns cursor to home position.  ALso returns display being shifted to the original position.  DDRAM content remains unchanged
-		GPIOC_PTOR &= ~(LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2);
-		GPIOC_PTOR = LCD_D1;
+		GPIOC_PDOR &= ~(LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2);
+		GPIOC_PDOR |= LCD_D1;
+
+		lcd_toggle_en(1);
 	}
 	else if(command == ENTRY_MODE_SET)
 	{
 	    //data set as output
-	    FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
+		FGPIOC_PDDR = (LCD_EN | LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);//FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
 
-		GPIOC_PTOR &= ~(LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3);
-		GPIOC_PTOR = LCD_D2;
+		GPIOC_PDOR &= ~(LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3);
+		GPIOC_PDOR |= LCD_D2;
 		if(param0)
 			lcd_write_reg(SHIFT_RW, HIGH);
 		else
@@ -93,14 +99,16 @@ void lcd_command_write(uint8_t command, uint8_t param0, uint8_t param1, uint8_t 
 		else
 			lcd_write_reg(INCREMENT, LOW);
 
+		lcd_toggle_en(1);
+
 	}
 	else if(command == DISPLAY_CTL)
 	{
 	    //data set as output
-	    FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
+		FGPIOC_PDDR = (LCD_EN | LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);//FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
 
-		GPIOC_PTOR &= ~(LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4);
-		GPIOC_PTOR = LCD_D3;
+		GPIOC_PDOR &= ~(LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4);
+		GPIOC_PDOR |= LCD_D3;
 		if(param0)
 			lcd_write_reg(BLINK, HIGH);
 		else
@@ -116,14 +124,16 @@ void lcd_command_write(uint8_t command, uint8_t param0, uint8_t param1, uint8_t 
 		else
 			lcd_write_reg(DISPLAY, LOW);
 
+		lcd_toggle_en(1);
+
 	}
 	else if(command == CURSOR_DISPLAY_SHIFT)
 	{
 	    //data set as output
-	    FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
+		FGPIOC_PDDR = (LCD_EN | LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);//FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
 
-		GPIOC_PTOR &= ~(LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5);
-		GPIOC_PTOR = LCD_D4;
+		GPIOC_PDOR &= ~(LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5);
+		GPIOC_PDOR |= LCD_D4;
 		if(param0)
 			lcd_write_reg(SHIFT_DIR, HIGH);
 		else
@@ -134,18 +144,20 @@ void lcd_command_write(uint8_t command, uint8_t param0, uint8_t param1, uint8_t 
 		else
 			lcd_write_reg(SHIFT_DISPLAY, LOW);
 
+		lcd_toggle_en(1);
+
 	}
 	else if(command == FUNCTION_SET)
 	{
 	    //data set as output
-	    FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
+		FGPIOC_PDDR = (LCD_EN | LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);//FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
 
-		GPIOC_PTOR &= ~(LCD_RS | LCD_RW | LCD_D7 | LCD_D6);
-		GPIOC_PTOR = LCD_D5;
+		GPIOC_PDOR &= ~(LCD_RS | LCD_RW | LCD_D7 | LCD_D6);
+		GPIOC_PDOR |= LCD_D5;
 		if(param0)
-			lcd_write_reg(FUNCTION_SET, HIGH);
+			lcd_write_reg(FONT, HIGH);
 		else
-			lcd_write_reg(FUNCTION_SET, LOW);
+			lcd_write_reg(FONT, LOW);
 
 		if(param1)
 			lcd_write_reg(NUM_LINE, HIGH);
@@ -157,14 +169,16 @@ void lcd_command_write(uint8_t command, uint8_t param0, uint8_t param1, uint8_t 
 		else
 			lcd_write_reg(DATA_LEN, LOW);
 
+		lcd_toggle_en(1);
+
 	}
 	else if(command == SET_CGRAM_ADDR)
 	{
 	    //data set as output
-	    FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
+		FGPIOC_PDDR = (LCD_EN | LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);//FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
 
-		GPIOC_PTOR &= ~(LCD_RS | LCD_RW | LCD_D7);
-		GPIOC_PTOR = LCD_D6;
+		GPIOC_PDOR &= ~(LCD_RS | LCD_RW | LCD_D7);
+		GPIOC_PDOR |= LCD_D6;
 		ldat.ldata = param0;
 		if(ldat.ld7 || ldat.ld6)
 		{
@@ -177,14 +191,16 @@ void lcd_command_write(uint8_t command, uint8_t param0, uint8_t param1, uint8_t 
 		lcd_write_reg(D1,ldat.ld1);
 		lcd_write_reg(D0,ldat.ld0);
 
+		lcd_toggle_en(1);
+
 	}
 	else if(command == SET_DDRAM_ADDR)
 	{
 	    //data set as output
-	    FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
+		FGPIOC_PDDR = (LCD_EN | LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);//FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
 
-		GPIOC_PTOR &= ~(LCD_RS | LCD_RW);
-		GPIOC_PTOR = LCD_D7;
+		GPIOC_PDOR &= ~(LCD_RS | LCD_RW);
+		GPIOC_PDOR |= LCD_D7;
         ldat.ldata = param0;
 		if(ldat.ld7)
 		{
@@ -197,23 +213,26 @@ void lcd_command_write(uint8_t command, uint8_t param0, uint8_t param1, uint8_t 
 		lcd_write_reg(D2,ldat.ld2);
 		lcd_write_reg(D1,ldat.ld1);
 		lcd_write_reg(D0,ldat.ld0);
+
+		lcd_toggle_en(1);
 	}
 	else if(command == READ_BUSY_N_ADDR_CTR)
 	{
+		//uint8_t save_current_values[8] = {LCD_D0, LCD_D1, LCD_D2, LCD_D3, LCD_D4, LCD_D5, LCD_D6, LCD_D7};
 	    //SET data as input
 	    FGPIOC_PDDR &= ~(LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
-
-		GPIOC_PTOR &= ~(LCD_RS);
-		GPIOC_PTOR = LCD_RW;
+	    FGPIOC_PDDR = (LCD_EN | LCD_RS | LCD_RW);
+		GPIOC_PDOR &= ~(LCD_RS);
+		GPIOC_PDOR |= LCD_RW;
 
 	}
 	else if(command == WRITE)
 	{
 	    //data set as output
-	    FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
+		FGPIOC_PDDR = (LCD_EN | LCD_RS | LCD_RW | LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);//FGPIOC_PDDR = (LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
 
-		GPIOC_PTOR &= ~(LCD_RW);
-		GPIOC_PTOR = LCD_RS;
+		GPIOC_PDOR &= ~(LCD_RW);
+		GPIOC_PDOR |= LCD_RS;
 		ldat.ldata = param0;
 		lcd_write_reg(D7,ldat.ld7);
 		lcd_write_reg(D6,ldat.ld6);
@@ -223,20 +242,24 @@ void lcd_command_write(uint8_t command, uint8_t param0, uint8_t param1, uint8_t 
 		lcd_write_reg(D2,ldat.ld2);
 		lcd_write_reg(D1,ldat.ld1);
 		lcd_write_reg(D0,ldat.ld0);
+
+		lcd_toggle_en(1);
 	}
 	else if(command == READ)
 	{
 	    //SET data as input
 	    FGPIOC_PDDR &= ~(LCD_D7 | LCD_D6 | LCD_D5 | LCD_D4 | LCD_D3 | LCD_D2 | LCD_D1 | LCD_D0);
+	    FGPIOC_PDDR = (LCD_EN | LCD_RS | LCD_RW);
+		GPIOC_PDOR |= (LCD_RS | LCD_RW);
 
-		GPIOC_PTOR = (LCD_RS | LCD_RW);
+		lcd_toggle_en(1);
 	}
 	else
 	{
 		//ERROR (not a command that is expected)
 	}
 
-	lcd_toggle_en(1);
+	//lcd_toggle_en(1);
 }
 
 void lcd_8bit_mode()
@@ -257,110 +280,211 @@ void lcd_8bit_mode()
 
 void lcd_toggle_en(uint8_t num_toggles)
 {
-	int i,j;
+	uint8_t i;
+	uint32_t busy_wait = 1;
+	uint16_t j;
 	for (i = 0; i<num_toggles; i++)
 	{
-		lcd_write_reg(EN,HIGH);
-		//pause to allow LCD to accept/fetch data
-		for(j = 0; j<255; j++) {};
+		lcd_delay(SHORT);
 		lcd_write_reg(EN,LOW);
+
+		lcd_delay(SHORT);
+		//Current Values
+		lcd_debug_log();
+
+		lcd_write_reg(EN,HIGH);
+		lcd_delay(SHORT);
 	}
 }
 
-void lcd_data_write(uint8_t * character_string, uint8_t length)
+void lcd_data_write(uint8_t * write_data, uint8_t length)
 {
-	int i;
-	if(length>32){};//ERROR will occur as the lcd screen only has 32 spots
-	for (i = 0; i<length; i++)
+	uint8_t i,j,k,atmost32;
+	uint8_t new_line_address = 0x40;
+
+	LOG_0("\n***Start String Write*** ",24);
+	for (i = 0; i<(length/32 + 1); i++)
 	{
-		lcd_command_write(WRITE,lcd_character_map(*(character_string+i)),NA,NA);
+		if((length - i*32)>32)
+			atmost32 = 32;
+		else
+			atmost32 = length - i*32;
+
+		if(i>0)
+		{
+				lcd_delay(MEDIUM);
+		}
+
+	    //Clear display, set cursor position to zero
+	    lcd_command_write(CLEAR_DISPLAY,NA,NA,NA);
+		for(j = 0; j<atmost32; j++)
+		{
+			if(j == 16) {
+				lcd_command_write(SET_DDRAM_ADDR,new_line_address,NA,NA);
+			}
+			lcd_command_write(WRITE,lcd_character_map(*(write_data+i*32+j)),NA,NA);
+		}
+
 	}
 
-	//move cursor back to the beginning
-	lcd_command_write(CURSOR_HOME,NA,NA,NA);
+	LOG_0("\n",1);
+	LOG_0(write_data,length);
+	LOG_0("\n***End String Write*** ",22);
+}
+
+void lcd_data_write_append(uint8_t * write_data, uint8_t length)
+{
+	uint8_t i,j,k,atmost32;
+	uint8_t new_line_address = 0x40;
+
+	LOG_0("\n***Start String APPEND Write*** ",31);
+	for (i = 0; i<(length/32 + 1); i++)
+	{
+		if((length - i*32)>32)
+			atmost32 = 32;
+		else
+			atmost32 = length - i*32;
+
+		if(i>0)
+		{
+				lcd_delay(MEDIUM);
+		}
+
+		for(j = 0; j<atmost32; j++)
+		{
+			if(j == 16) {
+				lcd_command_write(SET_DDRAM_ADDR,new_line_address,NA,NA);
+			}
+			lcd_command_write(WRITE,lcd_character_map(*(write_data+i*32+j)),NA,NA);
+		}
+
+	}
+
+	LOG_0("\n",1);
+	LOG_0(write_data,length);
+	LOG_0("\n***End String APPEND Write*** ",29);
+}
+
+void lcd_data_read(uint8_t * read_data, uint8_t length)
+{
+	if ((length>32) || (length<1)) {/*ERROR*/}
+	else
+	{
+		//lcd_command_write();
+
+		LOG_0(read_data, length);
+	}
 }
 
 void lcd_write_reg(uint8_t bit_name, uint8_t high)
 {
 	if(bit_name == RW)
 	{
-		if (high) { GPIOC_PTOR = LCD_RW; }
-		else { GPIOC_PTOR &= ~(LCD_RW); }
+		if (high) { GPIOC_PDOR |= LCD_RW; }
+		else { GPIOC_PDOR &= ~(LCD_RW); }
 	}
 
 
 	else if(bit_name == RS)
 	{
-		if (high) { GPIOC_PTOR = LCD_RS; }
-		else { GPIOC_PTOR &= ~(LCD_RS); }
+		if (high) { GPIOC_PDOR |= LCD_RS; }
+		else { GPIOC_PDOR &= ~(LCD_RS); }
 	}
 
 
 	else if(bit_name == EN)
 	{
-		if (high) { GPIOC_PTOR = LCD_EN; }
-		else { GPIOC_PTOR &= ~(LCD_EN); }
+		if (high) { GPIOC_PDOR |= LCD_EN; }
+		else { GPIOC_PDOR &= ~(LCD_EN); }
 	}
 
 
 	else if((bit_name == D7) || (bit_name == BUSY_FLAG))
 	{
-		if (high) { GPIOC_PTOR = LCD_D7; }
-		else { GPIOC_PTOR &= ~(LCD_D7); }
+		if (high) { GPIOC_PDOR |= LCD_D7; }
+		else { GPIOC_PDOR &= ~(LCD_D7); }
 	}
 
 
 	else if(bit_name == D6)
 	{
-		if (high) { GPIOC_PTOR = LCD_D6; }
-		else { GPIOC_PTOR &= ~(LCD_D6); }
+		if (high) { GPIOC_PDOR |= LCD_D6; }
+		else { GPIOC_PDOR &= ~(LCD_D6); }
 	}
 
 
 	else if(bit_name == D5)
 	{
-		if (high) { GPIOC_PTOR = LCD_D5; }
-		else { GPIOC_PTOR &= ~(LCD_D5); }
+		if (high) { GPIOC_PDOR |= LCD_D5; }
+		else { GPIOC_PDOR &= ~(LCD_D5); }
 	}
 
 
 	else if((bit_name == D4) || (bit_name == DATA_LEN))
 	{
-		if (high) { GPIOC_PTOR = LCD_D4; }
-		else { GPIOC_PTOR &= ~(LCD_D4); }
+		if (high) { GPIOC_PDOR |= LCD_D4; }
+		else { GPIOC_PDOR &= ~(LCD_D4); }
 	}
 
 
 	else if((bit_name == D3) || (bit_name == NUM_LINE) || (bit_name == SHIFT_DISPLAY))
 	{
-		if (high) { GPIOC_PTOR = LCD_D3; }
-		else { GPIOC_PTOR &= ~(LCD_D3); }
+		if (high) { GPIOC_PDOR |= LCD_D3; }
+		else { GPIOC_PDOR &= ~(LCD_D3); }
 	}
 
 
 	else if((bit_name == D2) || (bit_name == FONT) || (bit_name == SHIFT_DIR) || (bit_name == DISPLAY))
 	{
-		if (high) { GPIOC_PTOR = LCD_D2; }
-		else { GPIOC_PTOR &= ~(LCD_D2); }
+		if (high) { GPIOC_PDOR |= LCD_D2; }
+		else { GPIOC_PDOR &= ~(LCD_D2); }
 	}
 
 
 	else if((bit_name == D1) || (bit_name == CURSOR) || (bit_name == INCREMENT))
 	{
-		if (high) { GPIOC_PTOR = LCD_D1; }
-		else { GPIOC_PTOR &= ~(LCD_D1); }
+		if (high) { GPIOC_PDOR |= LCD_D1; }
+		else { GPIOC_PDOR &= ~(LCD_D1); }
 	}
 
 
 	else if((bit_name == D0) || (bit_name == BLINK) || (bit_name == SHIFT_RW))
 	{
-		if (high) { GPIOC_PTOR = LCD_D0; }
-		else { GPIOC_PTOR &= ~(LCD_D0); }
+		if (high) { GPIOC_PDOR |= LCD_D0; }
+		else { GPIOC_PDOR &= ~(LCD_D0); }
 	}
 
 	else
 	{
 		//ERROR (not one of the possible enums)
+	}
+}
+
+void lcd_display_en(uint8_t high)
+{
+	if(high)
+	{
+		//Turn display ON, cursor off, no blinking
+	    lcd_command_write(DISPLAY_CTL,LOW,LOW,HIGH);
+	} else
+	{
+		//Turn display OFF, cursor off, no blinking
+	    lcd_command_write(DISPLAY_CTL,LOW,LOW,LOW);
+	}
+}
+
+void lcd_delay(uint8_t mode)
+{
+	uint16_t i,j,num_times;
+	if(mode == SHORT)
+		num_times = 1;
+	else if(mode == MEDIUM)
+		num_times = 100;
+	else
+		num_times = 500;
+
+	for(i=0; i<num_times; i++){
+		for(j = 0; j<20000; j++) {};
 	}
 }
 
@@ -439,8 +563,33 @@ uint8_t lcd_character_map(uint8_t character)
 	else if (character == '(') { return 0x28; }
 	else if (character == ')') { return 0x29; }
 	else if (character == '.') { return 0x2E; }
-	else if (character == ' ') { return 0x00; }
+	else if (character == ',') { return 0x2C; }
+	else if (character == ' ') { return 0x20; }
 	else { return 0xEF; } //ERROR OUTPUT
+}
+
+void lcd_debug_log()
+{
+#ifdef LCD_TEST
+	uint8_t vEN = 0, vRS = 0, vRW = 0, vD7 = 0, vD6 = 0, vD5 = 0, vD4 = 0, vD3 = 0, vD2 = 0, vD1 = 0, vD0 = 0;
+
+	lcd_reg pdor;
+	pdor.lreg = GPIOC_PDOR;
+
+	LOG_0("\n\n= (EN,RS,RW,D7,D6,D5,D4,D3,D2,D1,D0)\n         ",40);
+	LOG_1("= ( ",4,pdor.lEN,UI8);
+	LOG_1(", ",2,pdor.lRS,UI8);
+	LOG_1(", ",2,pdor.lRW,UI8);
+	LOG_1(", ",2,pdor.lD7,UI8);
+	LOG_1(", ",2,pdor.lD6,UI8);
+	LOG_1(", ",2,pdor.lD5,UI8);
+	LOG_1(", ",2,pdor.lD4,UI8);
+	LOG_1(", ",2,pdor.lD3,UI8);
+	LOG_1(", ",2,pdor.lD2,UI8);
+	LOG_1(", ",2,pdor.lD1,UI8);
+	LOG_1(", ",2,pdor.lD0,UI8);
+	LOG_0(")",1);
+#endif
 }
 
 #endif

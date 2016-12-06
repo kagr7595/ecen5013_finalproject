@@ -71,6 +71,7 @@ uint8_t game_difficulty(){
 	uint8_t str_dif_lcd[32] = "Touch Left=EASY Touch Right=HARD";
 	lcd_data_write(str_dif_lcd,32);
 	LOG_0(str_dif, 48);
+	lcd_delay(MEDIUM);
 	while(!COLOR_EVENT){
 		NVIC_DisableIRQ(TSI0_IRQn);
 		RELEASE_EVENT = 0;
@@ -81,19 +82,21 @@ uint8_t game_difficulty(){
 		lcd_data_write(str_dif1,14);
 		LOG_0(str_dif1, 15);
 		difficulty = EASY;
+		lcd_delay(MEDIUM);
 	}
 	else if((touch_color == GREEN) || (touch_color == BLUE)){
 		uint8_t str_dif2[15] = "Selected HARD!\n";
 		lcd_data_write(str_dif2,14);
 		LOG_0(str_dif2, 15);
 		difficulty = HARD;
+		lcd_delay(MEDIUM);
 	}
 	else{
 		error = DIF_GAME_ERROR;
 	}
 	uint8_t str[37] = "To start the game, touch the slider!\n";
-	uint8_t str_lcd[32] = " To start game,   touch slider! ";
-	lcd_data_write(str_lcd,32);
+	uint8_t str_lcd[32] = " To start game,   touch slider!";
+	lcd_data_write(str_lcd,31);
 	LOG_0(str, 37);
 	state = WAIT_RELEASE;
 	return_state = START;
@@ -152,26 +155,30 @@ uint8_t game_request_color(){
 	if(color_num == 0){
 		req_color = RED;
 		uint8_t str[4] = "RED\n";
+		uint8_t str_lcd[16] = "      RED     ";
 		LOG_0(str, 4);
-		lcd_data_write(str,3);
+		lcd_data_write(str_lcd,13);
 	}
 	else if(color_num == 1){
 		req_color = GREEN;
 		uint8_t str[6] = "GREEN\n";
+		uint8_t str_lcd[16] = "     GREEN    ";
 		LOG_0(str, 6);
-		lcd_data_write(str,3);
+		lcd_data_write(str_lcd,13);
 	}
 	else if(color_num == 2){
 		req_color = BLUE;
 		uint8_t str[5] = "BLUE\n";
+		uint8_t str_lcd[16] = "      BLUE    ";
 		LOG_0(str, 5);
-		lcd_data_write(str,3);
+		lcd_data_write(str_lcd,13);
 	}
 	else if(color_num == 3){
 		req_color = RGB;
 		uint8_t str[4] = "RGB\n";
+		uint8_t str_lcd[16] = "      RGB     ";
 		LOG_0(str, 4);
-		lcd_data_write(str,3);
+		lcd_data_write(str_lcd,13);
 	}
 	else{
 		error = COLOR_REQUEST_GAME_ERROR;
@@ -211,13 +218,21 @@ uint8_t game_wait_release(){
 // Game goes into this state when a player hasn't touched the correct color fast enough
 uint8_t game_end(){
 	uint8_t error = NO_GAME_ERROR;
+	uint8_t value[15] = "VALUE     ";
 	timer_end();
 	NVIC_DisableIRQ(TSI0_IRQn);
 	TIMER_EVENT = 0;
 	NVIC_EnableIRQ(TSI0_IRQn);
 	uint8_t str[19] = "\nGAME OVER\n SCORE: ";
 	uint8_t str1[35] = "\n\nTo play again, touch the slider!\n";
+	uint8_t str_lcd[26]  = "   GAME OVER      SCORE = ";
+	uint8_t str_lcd1[32] = " To play again,   touch slider! ";
+	my_itoa(value,score,10);
+	lcd_data_write(str_lcd,26);
+	lcd_data_write_append(value,count2null(value));
+	lcd_delay(MEDIUM);
 	LOG_1(str, 19, score, UI64);
+	lcd_data_write(str_lcd1,31);
 	LOG_0(str1, 35);
 	score = 0;
 	state = WAIT_RELEASE;

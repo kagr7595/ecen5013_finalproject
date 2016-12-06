@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include "core_cm0plus.h"
 #include "lcd.h"
+#include "data.h"
 
 // Defines the game states
 enum GAME_STATES {DIFFICULTY, START, WAIT, NEW_COLOR, WAIT_RELEASE, END};
