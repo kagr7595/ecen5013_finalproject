@@ -218,7 +218,7 @@ uint8_t game_wait_release(){
 // Game goes into this state when a player hasn't touched the correct color fast enough
 uint8_t game_end(){
 	uint8_t error = NO_GAME_ERROR;
-	uint8_t value[15] = "VALUE     ";
+	uint8_t value[15] = "0 ";
 	timer_end();
 	NVIC_DisableIRQ(TSI0_IRQn);
 	TIMER_EVENT = 0;

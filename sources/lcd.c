@@ -12,8 +12,7 @@
 
 #include "lcd.h"
 
-// Initializes the hardware for the TSI and reads in the base values for each of the two sensors
-// RGB_init() must be called prior
+// Initializes the registers to start the LCD and connect the device pins.  Does basic startup procedures.
 void lcd_init(){
     // Enable clock gating for PORTC (Using PORTC inputs/outputs for LCD)
     SIM_SCGC5 |= SIM_SCGC5_PORTC_MASK;
@@ -46,14 +45,17 @@ void lcd_init(){
     lcd_command_write(FUNCTION_SET,LOW,HIGH,HIGH);
     //Increment automatically, no display shift
     lcd_command_write(ENTRY_MODE_SET,LOW,HIGH,NA);
-    //Turn display on, cursor off, no blinking
-    lcd_command_write(DISPLAY_CTL,LOW,LOW,HIGH);
+    //Clear display, set cursor position to zero
+    lcd_command_write(CLEAR_DISPLAY,NA,NA,NA);
 
     lcd_display_en(HIGH);
     lcd_delay(MEDIUM);
 
 }
 
+
+// For a specific lcd command, this function will correctly set the correct pin configurations
+// and toggle the enable signal to tell the lcd that the pins are ready to be read
 void lcd_command_write(uint8_t command, uint8_t param0, uint8_t param1, uint8_t param2)
 {
 	lcd_data ldat;
@@ -262,6 +264,8 @@ void lcd_command_write(uint8_t command, uint8_t param0, uint8_t param1, uint8_t 
 	//lcd_toggle_en(1);
 }
 
+
+// Sets the lcd to 8bit mode
 void lcd_8bit_mode()
 {
 	//Mode selection - the lcd can start in 3 different states - get the mode to 8bit by repeating the following 3 times
@@ -278,6 +282,9 @@ void lcd_8bit_mode()
 
 }
 
+// Toggles the Enable pin (Active falling edge)
+// This function includes delays necessary for the device to have enough time to run the command
+// Optional lcd_debug_log is run for every command if LCD_TEST is in the compile arguments
 void lcd_toggle_en(uint8_t num_toggles)
 {
 	uint8_t i;
@@ -297,6 +304,10 @@ void lcd_toggle_en(uint8_t num_toggles)
 	}
 }
 
+// Given a pointer and length, will write the data onto the lcd screen.
+// If larger than 16 bytes, the data will take two lines.
+// If larger than 32 bytes, the data will fill the first screen of two lines,
+// pause then repeat the process after clearing the display until the length has finished writing
 void lcd_data_write(uint8_t * write_data, uint8_t length)
 {
 	uint8_t i,j,k,atmost32;
@@ -332,6 +343,8 @@ void lcd_data_write(uint8_t * write_data, uint8_t length)
 	LOG_0("\n***End String Write*** ",22);
 }
 
+// Will append more characters to the screen without clearing the previous contents
+// and will start at the last address +  1 that was written to the lcd
 void lcd_data_write_append(uint8_t * write_data, uint8_t length)
 {
 	uint8_t i,j,k,atmost32;
@@ -365,6 +378,7 @@ void lcd_data_write_append(uint8_t * write_data, uint8_t length)
 	LOG_0("\n***End String APPEND Write*** ",29);
 }
 
+// Will read the data on the lcd screen for the given length
 void lcd_data_read(uint8_t * read_data, uint8_t length)
 {
 	if ((length>32) || (length<1)) {/*ERROR*/}
@@ -376,6 +390,7 @@ void lcd_data_read(uint8_t * read_data, uint8_t length)
 	}
 }
 
+// Basic pin write for GPIOC register.  Will either set pin high or low.
 void lcd_write_reg(uint8_t bit_name, uint8_t high)
 {
 	if(bit_name == RW)
@@ -460,6 +475,8 @@ void lcd_write_reg(uint8_t bit_name, uint8_t high)
 	}
 }
 
+// Will either turn on or off the display depending if the bit entered is 0 or 1
+// Blinker and Cursor are set to OFF
 void lcd_display_en(uint8_t high)
 {
 	if(high)
@@ -473,6 +490,7 @@ void lcd_display_en(uint8_t high)
 	}
 }
 
+// Pauses the simulation for a given amound of time (Either SHORT, MEDIUM, LONG periods of time)
 void lcd_delay(uint8_t mode)
 {
 	uint16_t i,j,num_times;
@@ -568,6 +586,7 @@ uint8_t lcd_character_map(uint8_t character)
 	else { return 0xEF; } //ERROR OUTPUT
 }
 
+// Outputs to UART the current pin outputs for EN, RS, RW, D7-D0
 void lcd_debug_log()
 {
 #ifdef LCD_TEST

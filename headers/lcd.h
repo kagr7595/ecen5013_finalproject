@@ -34,6 +34,7 @@
 #define LOW 0
 #define NA 15
 
+//Used to get seperate bits from a single byte parameter
 typedef union {
 	struct {
 		uint8_t ld0 : 1;
@@ -53,6 +54,7 @@ enum LCD_COMMAND {CLEAR_DISPLAY, CURSOR_HOME, ENTRY_MODE_SET, DISPLAY_CTL, CURSO
 
 enum LCD_DELAY_SPEED {SHORT, MEDIUM, LONG};
 
+// Used to get pin values from a full register
 typedef union {
 	struct {
 		uint32_t l00 : 1;
@@ -96,29 +98,48 @@ typedef union {
  * of runtime routines.
  ***************************************************************************/
 
-// Initializes the registers to start the LCD and connect the device pins
+// Initializes the registers to start the LCD and connect the device pins.  Does basic startup procedures.
 void lcd_init();
 
+// Basic pin write for GPIOC register.  Will either set pin high or low.
 void lcd_write_reg(uint8_t bit_name, uint8_t high);
 
+// For a specific lcd command, this function will correctly set the correct pin configurations
+// and toggle the enable signal to tell the lcd that the pins are ready to be read
 void lcd_command_write(uint8_t command, uint8_t param0, uint8_t param1, uint8_t param2);
 
+// Sets the lcd to 8bit mode
 void lcd_8bit_mode();
 
+// Toggles the Enable pin (Active falling edge)
+// This function includes delays necessary for the device to have enough time to run the command
+// Optional lcd_debug_log is run for every command if LCD_TEST is in the compile arguments
 void lcd_toggle_en(uint8_t num_toggles);
 
+// Given a pointer and length, will write the data onto the lcd screen.
+// If larger than 16 bytes, the data will take two lines.
+// If larger than 32 bytes, the data will fill the first screen of two lines,
+// pause then repeat the process after clearing the display until the length has finished writing
 void lcd_data_write(uint8_t * write_data, uint8_t length);
 
+// Will append more characters to the screen without clearing the previous contents
+// and will start at the last address +  1 that was written to the lcd
 void lcd_data_write_append(uint8_t * write_data, uint8_t length);
 
+// Will read the data on the lcd screen for the given length
 void lcd_data_read(uint8_t * read_data, uint8_t length);
 
+// Will either turn on or off the display depending if the bit entered is 0 or 1
+// Blinker and Cursor are set to OFF
 void lcd_display_en(uint8_t high);
 
+// Pauses the simulation for a given amound of time (Either SHORT, MEDIUM, LONG periods of time)
 void lcd_delay(uint8_t mode);
 
+// Given a specific character, will return the corresponding LCD byte value for HD44780 controller
 uint8_t lcd_character_map(uint8_t character);
 
+// Outputs to UART the current pin outputs for EN, RS, RW, D7-D0
 void lcd_debug_log();
 
 #endif
