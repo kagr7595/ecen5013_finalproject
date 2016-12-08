@@ -7,6 +7,7 @@
 *               Dylan Way
 *       
 ****************************************************************************/
+#include "final_project.h"
 
 int main() {
 	final_project();
